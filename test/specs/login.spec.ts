@@ -73,5 +73,11 @@ describe('Login', () => {
             loginData.valid.email,
             loginData.valid.password,
         );
+
+        // O app exibe um alerta de sucesso após a autenticação simulada.
+        // Validar o feedback impede falso positivo quando apenas o clique funciona.
+        await expect(
+            LoginPage.elementoPorTexto('You are logged in!'),
+        ).toBeDisplayed();
     });
 });
