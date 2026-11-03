@@ -1,6 +1,7 @@
 name: QA Mobile CI
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -31,3 +32,42 @@ jobs:
 
       - name: Validar TypeScript
         run: npx tsc --noEmit
+  android-browserstack:
+    name: Executar testes Android no BrowserStack
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+      BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+      BROWSERSTACK_ANDROID_APP_ID: ${{ secrets.BROWSERSTACK_ANDROID_APP_ID }}
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Verificar credenciais e aplicativo
+        shell: bash
+        run: |
+          if [ -z "$BROWSERSTACK_USERNAME" ] || [ -z "$BROWSERSTACK_ACCESS_KEY" ] || [ -z "$BROWSERSTACK_ANDROID_APP_ID" ]; then
+            echo "::error::Configure BROWSERSTACK_USERNAME, BROWSERSTACK_ACCESS_KEY e BROWSERSTACK_ANDROID_APP_ID nos secrets do GitHub."
+            exit 1
+          fi
+      - name: Instalar dependências
+        run: npm ci
+      - name: Executar testes funcionais Android
+        run: npm run test:browserstack:android
+      - name: Publicar evidências
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-browserstack-evidencias
+          path: |
+            allure-results/
+            logs/
+            screenshots/
+          if-no-files-found: warn
+          retention-days: 7
